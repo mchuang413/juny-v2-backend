@@ -2,3 +2,4 @@ certifi==2023.7.22
 Flask==3.0.0
 Flask-Cors==4.0.0
 pymongo==4.5.0
+pytz==2023.3
