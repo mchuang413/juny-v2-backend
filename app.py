@@ -3,7 +3,8 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+import pytz
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
@@ -39,18 +40,19 @@ def login():
         return jsonify({"status": "error", "message": "User not found"}), 404
 
     if user["password"] == password:
-        # Handle streak calculation
         last_login = user.get("last_login")
-        today = datetime.utcnow().date()
 
         if last_login:
+            pst = pytz.timezone("US/Pacific")
+            now_pst = datetime.now(pst)
+            today_pst = now_pst.date()
             last_login_date = datetime.strptime(last_login, "%Y-%m-%d").date()
-            if last_login_date == today - timedelta(days=1):
+            if last_login_date == today_pst - timedelta(days=1):
                 user["streak"] += 1
-            elif last_login_date < today - timedelta(days=1):
-                user["streak"] = 1  # Reset streak
+            elif last_login_date < today_pst - timedelta(days=1):
+                user["streak"] = 1
         else:
-            user["streak"] = 1  # First login sets streak to 1
+            user["streak"] = 1
 
         collection.update_one(
             {"email": email},
@@ -91,7 +93,7 @@ def signup():
 
 @app.route("/streak", methods=["GET"])
 def get_streak():
-    email = request.args.get("email")  # Retrieve email from query parameters
+    email = request.args.get("email")
     if not email:
         return jsonify({"status": "error", "message": "Email is required"}), 400
 
@@ -103,4 +105,4 @@ def get_streak():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    app.run(host="127.0.0.1", port=8000, debug=True)
